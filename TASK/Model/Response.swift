@@ -482,15 +482,16 @@ class JSONAny: Codable {
 
 
 
+
+
 import Foundation
 
 struct Event: Codable {
+
     let scheduleItems: [ScheduleItem]
-    let meta: Meta?
 
     enum CodingKeys: String, CodingKey {
         case scheduleItems = "schedule_items"
-        case meta
     }
 }
 
@@ -512,4 +513,3 @@ struct ScheduleItem: Codable {
         case endTimeText = "end_time_text"
     }
 }
-

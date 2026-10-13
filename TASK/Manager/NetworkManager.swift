@@ -187,43 +187,15 @@ final class NetworkManager {
                         completion(.success(events))
                     }
 
-                } catch let error as DecodingError {
-
-                    switch error {
-
-                    case .keyNotFound(let key, let context):
-                        print("MISSING KEY:", key.stringValue)
-                        print("PATH:", context.codingPath.map(\.stringValue))
-                        print("DETAILS:", context.debugDescription)
-
-                    case .valueNotFound(let type, let context):
-                        print("MISSING VALUE TYPE:", type)
-                        print("PATH:", context.codingPath.map(\.stringValue))
-                        print("DETAILS:", context.debugDescription)
-
-                    case .typeMismatch(let type, let context):
-                        print("TYPE MISMATCH:", type)
-                        print("PATH:", context.codingPath.map(\.stringValue))
-                        print("DETAILS:", context.debugDescription)
-
-                    case .dataCorrupted(let context):
-                        print("INVALID DATA:", context.debugDescription)
-
-                    @unknown default:
-                        print("DECODING ERROR:", error)
-                    }
-
-                    DispatchQueue.main.async {
-                        completion(.failure(error))
-                    }
-
-                } catch {
-                    print("REQUEST ERROR:", error.localizedDescription)
+                }catch {
+                    print("FULL DECODING ERROR:")
+                    dump(error)
 
                     DispatchQueue.main.async {
                         completion(.failure(error))
                     }
                 }
+                
 
             case .failure(let error):
                 print("NETWORK ERROR:", error.localizedDescription)
