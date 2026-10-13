@@ -5,16 +5,160 @@ final class NetworkManager {
 
     static let shared = NetworkManager()
 
-    private let provider = MoyaProvider<ResponseAPI>()
+    private let provider: MoyaProvider<ResponseAPI>
 
-    private init() {}
+    private init() {
+        self.provider = MoyaProvider<ResponseAPI>()
+    }
 
-    private func request(
-        _ api: ResponseAPI,
+
+    func sendSMSCode(
+        phoneNumber: String,
         completion: @escaping (Result<APIResponse, Error>) -> Void
     ) {
+        provider.request(.sendSMSCode(phoneNumber: phoneNumber)) { result in
 
-        provider.request(api) { result in
+            switch result {
+
+            case .success(let response):
+                do {
+                    let validResponse =
+                        try response.filterSuccessfulStatusCodes()
+
+                    let apiResponse = APIResponse(
+                        statusCode: validResponse.statusCode,
+                        rawJSON: String(
+                            data: validResponse.data,
+                            encoding: .utf8
+                        ) ?? ""
+                    )
+
+                    completion(.success(apiResponse))
+
+                } catch {
+                    completion(.failure(error))
+                }
+
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    // MARK: - Verify SMS Code
+
+    func verifySMSCode(
+        phoneNumber: String,
+        code: String,
+        completion: @escaping (Result<APIResponse, Error>) -> Void
+    ) {
+        provider.request(
+            .verifySMSCode(
+                phoneNumber: phoneNumber,
+                code: code
+            )
+        ) { result in
+
+            switch result {
+
+            case .success(let response):
+                do {
+                    let validResponse =
+                        try response.filterSuccessfulStatusCodes()
+
+                    let apiResponse = APIResponse(
+                        statusCode: validResponse.statusCode,
+                        rawJSON: String(
+                            data: validResponse.data,
+                            encoding: .utf8
+                        ) ?? ""
+                    )
+
+                    completion(.success(apiResponse))
+
+                } catch {
+                    completion(.failure(error))
+                }
+
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    func signIn(
+        phoneNumber: String,
+        otp: String,
+        completion: @escaping (Result<APIResponse, Error>) -> Void
+    ) {
+        provider.request(
+            .signIn(
+                phoneNumber: phoneNumber,
+                otp: otp
+            )
+        ) { result in
+
+            switch result {
+
+            case .success(let response):
+                do {
+                    let validResponse =
+                        try response.filterSuccessfulStatusCodes()
+
+                    let apiResponse = APIResponse(
+                        statusCode: validResponse.statusCode,
+                        rawJSON: String(
+                            data: validResponse.data,
+                            encoding: .utf8
+                        ) ?? ""
+                    )
+
+                    completion(.success(apiResponse))
+
+                } catch {
+                    completion(.failure(error))
+                }
+
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    func getTeams(
+        completion: @escaping (Result<Team, Error>) -> Void
+    ) {
+        provider.request(.teamsList) { result in
+
+            switch result {
+
+            case .success(let response):
+                do {
+                    let validResponse =
+                        try response.filterSuccessfulStatusCodes()
+
+                    let teams = try JSONDecoder().decode(
+                        Team.self,
+                        from: validResponse.data
+                    )
+
+                    completion(.success(teams))
+
+                } catch {
+                    completion(.failure(error))
+                }
+
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+    
+ 
+    func getScheduledEvents(
+        completion: @escaping (Result<Event, Error>) -> Void
+    ) {
+        provider.request(.scheduledEvents) { result in
 
             switch result {
 
@@ -24,21 +168,57 @@ final class NetworkManager {
                     let validResponse =
                         try response.filterSuccessfulStatusCodes()
 
-                    let responseString = String(
-                        data: validResponse.data,
-                        encoding: .utf8
-                    ) ?? ""
+                    print("STATUS CODE:", validResponse.statusCode)
 
-                    let apiResponse = APIResponse(
-                        statusCode: validResponse.statusCode,
-                        rawJSON: responseString
+                    print("RAW JSON:")
+                    print(
+                        String(
+                            data: validResponse.data,
+                            encoding: .utf8
+                        ) ?? "Unable to read response"
+                    )
+
+                    let events = try JSONDecoder().decode(
+                        Event.self,
+                        from: validResponse.data
                     )
 
                     DispatchQueue.main.async {
-                        completion(.success(apiResponse))
+                        completion(.success(events))
+                    }
+
+                } catch let error as DecodingError {
+
+                    switch error {
+
+                    case .keyNotFound(let key, let context):
+                        print("MISSING KEY:", key.stringValue)
+                        print("PATH:", context.codingPath.map(\.stringValue))
+                        print("DETAILS:", context.debugDescription)
+
+                    case .valueNotFound(let type, let context):
+                        print("MISSING VALUE TYPE:", type)
+                        print("PATH:", context.codingPath.map(\.stringValue))
+                        print("DETAILS:", context.debugDescription)
+
+                    case .typeMismatch(let type, let context):
+                        print("TYPE MISMATCH:", type)
+                        print("PATH:", context.codingPath.map(\.stringValue))
+                        print("DETAILS:", context.debugDescription)
+
+                    case .dataCorrupted(let context):
+                        print("INVALID DATA:", context.debugDescription)
+
+                    @unknown default:
+                        print("DECODING ERROR:", error)
+                    }
+
+                    DispatchQueue.main.async {
+                        completion(.failure(error))
                     }
 
                 } catch {
+                    print("REQUEST ERROR:", error.localizedDescription)
 
                     DispatchQueue.main.async {
                         completion(.failure(error))
@@ -46,6 +226,7 @@ final class NetworkManager {
                 }
 
             case .failure(let error):
+                print("NETWORK ERROR:", error.localizedDescription)
 
                 DispatchQueue.main.async {
                     completion(.failure(error))
@@ -53,67 +234,5 @@ final class NetworkManager {
             }
         }
     }
-
-    func sendSMSCode(
-        phoneNumber: String,
-        completion: @escaping (Result<APIResponse, Error>) -> Void
-    ) {
-
-        request(
-            .sendSMSCode(phoneNumber: phoneNumber),
-            completion: completion
-        )
-    }
-
-    func verifySMSCode(
-        phoneNumber: String,
-        code: String,
-        completion: @escaping (Result<APIResponse, Error>) -> Void
-    ) {
-
-        request(
-            .verifySMSCode(
-                phoneNumber: phoneNumber,
-                code: code
-            ),
-            completion: completion
-        )
-    }
-
-    // MARK: - API 3: Sign In
-
-    func signIn(
-        phoneNumber: String,
-        otp: String,
-        completion: @escaping (Result<APIResponse, Error>) -> Void
-    ) {
-
-        request(
-            .signIn(
-                phoneNumber: phoneNumber,
-                otp: otp
-            ),
-            completion: completion
-        )
-    }
-
-
-    func getScheduledEvents(
-        completion: @escaping (Result<APIResponse, Error>) -> Void
-    ) {
-
-        request(
-            .scheduledEvents,
-            completion: completion
-        )
-    }
-
-    func getTeams(
-        completion: @escaping (Result<APIResponse, Error>) -> Void
-    ) {
-        request(
-            .teamsList,
-            completion: completion
-        )
-    }
+    
 }

@@ -109,7 +109,7 @@ struct TeamElement: Codable  {
     }
 }
 
-// MARK: - CurrentUserTeamPlayer
+
 struct CurrentUserTeamPlayer: Codable {
     let id: Int
     let inactivatedAt: JSONNull?
@@ -479,3 +479,37 @@ class JSONAny: Codable {
         }
     }
 }
+
+
+
+import Foundation
+
+struct Event: Codable {
+    let scheduleItems: [ScheduleItem]
+    let meta: Meta?
+
+    enum CodingKeys: String, CodingKey {
+        case scheduleItems = "schedule_items"
+        case meta
+    }
+}
+
+
+import Foundation
+
+struct ScheduleItem: Codable {
+    let eventID: Int
+    let eventDate: String
+    let eventStatus: String
+    let eventStatusLabel: String
+    let endTimeText: String
+
+    enum CodingKeys: String, CodingKey {
+        case eventID = "event_id"
+        case eventDate = "event_date"
+        case eventStatus = "event_status"
+        case eventStatusLabel = "event_status_label"
+        case endTimeText = "end_time_text"
+    }
+}
+

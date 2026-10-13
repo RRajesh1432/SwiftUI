@@ -1,4 +1,3 @@
-
 import SwiftUI
 
 struct HomeView: View {
@@ -12,6 +11,7 @@ struct HomeView: View {
             Section("Scheduled Events") {
 
                 if viewModel.eventsResponse.isEmpty {
+
                     Text("No events loaded.")
                         .foregroundStyle(.secondary)
 
@@ -24,32 +24,32 @@ struct HomeView: View {
 
                         VStack(alignment: .leading, spacing: 8) {
 
-                            Text(
-                                event["title"]
-                                ?? event["name"]
-                                ?? "Event \(index + 1)"
-                            )
-                            .font(.headline)
+                            Text("Event \(index + 1)")
+                                .font(.headline)
 
                             ForEach(
-                                event.keys.sorted().filter {
-                                    $0 != "title" && $0 != "name"
-                                },
-                                id: \.self
-                            ) { key in
+                            Array(
+                                    Mirror(reflecting: event)
+                                        .children
+                                        .enumerated()
+                                ),
+                                id: \.offset
+                            ) { _, child in
 
                                 VStack(alignment: .leading, spacing: 3) {
 
                                     Text(
-                                        key.replacingOccurrences(
-                                            of: "_",
-                                            with: " "
-                                        ).capitalized
+                                        (child.label ?? "Details")
+                                            .replacingOccurrences(
+                                                of: "_",
+                                                with: " "
+                                            )
+                                            .capitalized
                                     )
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
 
-                                    Text(event[key] ?? "")
+                                    Text(String(describing: child.value))
                                         .font(.subheadline)
                                         .textSelection(.enabled)
                                 }
@@ -65,16 +65,30 @@ struct HomeView: View {
                 .disabled(viewModel.isLoading)
             }
 
+
             Section("Teams List") {
 
                 if viewModel.teamsResponse.isEmpty {
+
                     Text("No teams loaded.")
                         .foregroundStyle(.secondary)
 
                 } else {
 
                     ForEach(viewModel.teamsResponse, id: \.id) { team in
-                        Text(team.name)
+
+                        VStack(alignment: .leading, spacing: 6) {
+
+                            Text("ID: \(team.id)")
+                                .font(.headline)
+
+                            Text("Name: \(team.name)")
+
+                            Text("Team Type: \(team.teamType)")
+
+                            Text("Member Count: \(team.memberCount)")
+                        }
+                        .padding(.vertical, 5)
                     }
                 }
 
@@ -84,20 +98,26 @@ struct HomeView: View {
                 .disabled(viewModel.isLoading)
             }
 
+
             if viewModel.isLoading {
+
                 Section {
                     ProgressView("Loading...")
                 }
             }
 
+
             if !viewModel.errorMessage.isEmpty {
+
                 Section("Error") {
+
                     Text(viewModel.errorMessage)
                         .foregroundStyle(.red)
                 }
             }
-
+            
             Section {
+
                 Button("Refresh All Data") {
                     viewModel.loadHomeData()
                 }

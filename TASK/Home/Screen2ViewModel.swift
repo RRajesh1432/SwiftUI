@@ -1,4 +1,3 @@
-
 import Foundation
 
 @Observable
@@ -8,9 +7,84 @@ final class Screen2ViewModel {
 
     let useCase: Screen2UseCaseProtocol = Screen2UseCase()
 
-    // MARK: - Getters and Setters
+    func getScheduledEvents() {
 
-    var eventsResponse: [[String: String]] {
+        isLoading = true
+        errorMessage = ""
+
+        useCase.getScheduledEvents { [weak self] result in
+
+            DispatchQueue.main.async {
+
+                guard let self = self else { return }
+
+                self.isLoading = false
+
+                switch result {
+
+                case .success(let response):
+
+                    self.eventsResponse = response.scheduleItems
+
+                    print("Scheduled Events API Response:")
+                    print(response)
+
+                case .failure(let error):
+
+                    self.errorMessage =
+                        "Failed to load events: \(error.localizedDescription)"
+
+                    print(self.errorMessage)
+                }
+            }
+        }
+    }
+
+
+    func getTeams() {
+
+        isLoading = true
+        errorMessage = ""
+
+        useCase.getTeams { [weak self] result in
+
+            DispatchQueue.main.async {
+
+                guard let self = self else { return }
+
+                self.isLoading = false
+
+                switch result {
+
+                case .success(let response):
+
+                    self.teamsResponse = response.teams
+
+//                    print("Teams API Response:")
+//                    print(response.teams)
+
+                case .failure(let error):
+
+                    self.errorMessage =
+                        "Failed to load teams: \(error.localizedDescription)"
+
+                    print(self.errorMessage)
+                }
+            }
+        }
+    }
+
+
+    func loadHomeData() {
+
+        getScheduledEvents()
+        getTeams()
+    }
+}
+
+extension Screen2ViewModel {
+
+    var eventsResponse: [ScheduleItem] {
         get { model.eventsResponse }
         set { model.eventsResponse = newValue }
     }
@@ -33,134 +107,6 @@ final class Screen2ViewModel {
     var teams: String {
         get { model.teams }
         set { model.teams = newValue }
-    }
-
-    // MARK: - API Actions
-
-    func getScheduledEvents() {
-
-        isLoading = true
-        errorMessage = ""
-
-        useCase.getScheduledEvents { [weak self] result in
-
-            DispatchQueue.main.async {
-
-                guard let self = self else { return }
-
-                self.isLoading = false
-
-                switch result {
-
-                case .success(let response):
-
-                    guard let data = response.rawJSON.data(using: .utf8) else {
-                        self.errorMessage = "Unable to read scheduled events."
-                        return
-                    }
-
-                    do {
-                        let json = try JSONSerialization.jsonObject(
-                            with: data
-                        )
-
-                        var eventList: [[String: Any]] = []
-
-                        if let dictionary = json as? [String: Any] {
-
-                            if let events = dictionary["scheduled_events"]
-                                as? [[String: Any]] {
-                                eventList = events
-
-                            } else if let events = dictionary["events"]
-                                as? [[String: Any]] {
-                                eventList = events
-
-                            } else if let events = dictionary["data"]
-                                as? [[String: Any]] {
-                                eventList = events
-                            }
-
-                        } else if let events = json as? [[String: Any]] {
-                            eventList = events
-                        }
-
-                        self.eventsResponse = eventList.map { event in
-                            var formattedEvent: [String: String] = [:]
-
-                            for (key, value) in event {
-                                formattedEvent[key] = String(
-                                    describing: value
-                                )
-                            }
-
-                            return formattedEvent
-                        }
-
-                        if self.eventsResponse.isEmpty {
-                            self.errorMessage = "No scheduled events found."
-                        }
-
-                    } catch {
-                        self.errorMessage =
-                            "Failed to read events: \(error.localizedDescription)"
-                    }
-
-                case .failure(let error):
-                    self.errorMessage = error.localizedDescription
-                }
-            }
-        }
-    }
-
-    func getTeams() {
-
-        isLoading = true
-        errorMessage = ""
-
-        useCase.getTeams { [weak self] result in
-
-            DispatchQueue.main.async {
-
-                guard let self = self else { return }
-
-                self.isLoading = false
-
-                switch result {
-
-                case .success(let response):
-
-                    self.teams = response.rawJSON
-
-                    guard let data = response.rawJSON.data(using: .utf8) else {
-                        self.errorMessage = "Unable to read teams."
-                        return
-                    }
-
-                    do {
-                        let teamData = try JSONDecoder().decode(
-                            Team.self,
-                            from: data
-                        )
-
-                        self.teamsResponse = teamData.teams
-
-                    } catch {
-                        self.errorMessage =
-                            "Failed to read teams: \(error.localizedDescription)"
-                    }
-
-                case .failure(let error):
-                    self.errorMessage = error.localizedDescription
-                }
-            }
-        }
-    }
-
-    func loadHomeData() {
-
-        getScheduledEvents()
-        getTeams()
     }
 }
 
